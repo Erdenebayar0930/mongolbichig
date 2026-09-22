@@ -14,8 +14,9 @@
 import { readFileSync } from "node:fs";
 
 import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/mysql2";
+
+import { createDbPool, resolveDatabaseUrl } from "../../src/lib/db/createPool";
 
 import {
   siteCourses,
@@ -334,18 +335,16 @@ async function main() {
     );
   }
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool);
+  // Seed нь ганц холболтоор дараалан бичнэ — pool-ыг 1-ээр хязгаарлав.
+  const pool = createDbPool(resolveDatabaseUrl()!, 1);
+  const db = drizzle(pool, { mode: "default" });
 
   try {
     for (const course of COURSES) {
       await db
         .insert(siteCourses)
         .values(course)
-        .onConflictDoUpdate({
-          target: siteCourses.slug,
-          set: { ...course, updatedAt: new Date() },
-        });
+        .onDuplicateKeyUpdate({ set: { ...course, updatedAt: new Date() } });
     }
     console.log(`✓ ${COURSES.length} сургалт`);
 
@@ -353,10 +352,7 @@ async function main() {
       await db
         .insert(siteProducts)
         .values(product)
-        .onConflictDoUpdate({
-          target: siteProducts.slug,
-          set: { ...product, updatedAt: new Date() },
-        });
+        .onDuplicateKeyUpdate({ set: { ...product, updatedAt: new Date() } });
     }
     console.log(`✓ ${PRODUCTS.length} бүтээгдэхүүн`);
 
@@ -371,10 +367,7 @@ async function main() {
       await db
         .insert(siteNews)
         .values(values)
-        .onConflictDoUpdate({
-          target: siteNews.slug,
-          set: { ...values, updatedAt: new Date() },
-        });
+        .onDuplicateKeyUpdate({ set: { ...values, updatedAt: new Date() } });
     }
     console.log(`✓ ${NEWS.length} мэдээ`);
 
@@ -383,12 +376,14 @@ async function main() {
       await db
         .insert(siteSettings)
         .values({ key, value: DEFAULT_SETTINGS[key] })
-        .onConflictDoNothing({ target: siteSettings.key });
+        // MySQL-д "байхгүй бол л нэмэх" — давхцвал өөрийг нь өөр рүү нь
+        // бичих хоосон UPDATE хийж, утгыг нь хөндөхгүй өнгөрнө.
+        .onDuplicateKeyUpdate({ set: { key: sql`${siteSettings.key}` } });
     }
     console.log(`✓ ${SETTING_KEYS.length} тохиргоо (байхгүйг нь л нэмэв)`);
 
     const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`cast(count(*) as signed)` })
       .from(siteCourses);
     console.log(`\nНийт сургалт: ${count}`);
   } finally {

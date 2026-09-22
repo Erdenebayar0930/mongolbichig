@@ -432,12 +432,27 @@ Node.js тохиргоо). Build "Killed" гэж унавал хамгийн т�
 [README.md](../README.md)-ээс): `/` дор Уран бичлэгийн нийтийн сайт, `/udirdlaga`
 болон түүний доорх замуудад Бид туслая. Үүнээс гарах дөрвөн үр дагавар:
 
-### 1. Нэг деплой = нэг домэйн
+### 1. Нэг репо, хоёр Hostinger сайт
 
-`dash.bbuchmongol.com/` нь одооноос **Уран бичлэгийн нүүр хуудсыг** харуулна,
-дашбоард нь `/udirdlaga` дор шилжсэн. Хэрэв Уран бичлэгт өөрийн домэйн
-хэрэгтэй бол hPanel дээр тэр домэйныг **ижил сайт руу alias** болгож заана —
-хоёр домэйн ижил аппыг үйлчилнэ, зөвхөн хаяг нь өөр.
+| Домэйн | Юу харагдах | Hostinger дээр |
+|---|---|---|
+| `uranbichleg.daamal.org` | Уран бичлэгийн нийтийн сайт (`/`) | mongolbichig repo-той холбогдсон тусдаа сайт |
+| `dash.bbuchmongol.com` | мөн ижил апп; дашбоард нь `/udirdlaga` дор | хуучин сайт |
+
+Хоёулаа **ижил `main` салбараас** build хийгддэг тул нэг push хоёуланг нь
+шинэчилнэ. Код нь домэйн мэддэггүй — зөвхөн зам ялгаатай: `/` нь нийтийн сайт,
+`/udirdlaga` нь дашбоард, `/admin` нь сайтын өөрийн админ.
+
+> Өөрөөр хэлбэл `uranbichleg.daamal.org/udirdlaga` ч ажиллана. Хэрэгтэй бол
+> hPanel-ийн тухайн сайтын `.htaccess`-ээр зогсоохоос бус кодоор хаагаагүй.
+
+**Сайт үүсгэх дараалал** (hPanel → Websites → Add website):
+
+1. Домэйн эсвэл дэд домэйнг нэмнэ (`uranbichleg.daamal.org`).
+2. Deployment / Node.js → GitHub repo `Erdenebayar0930/mongolbichig`,
+   салбар `main`.
+3. Доорх орчны хувьсагчдыг оруулна — **build-аас ӨМНӨ**.
+4. Deploy. Дуусахад `/api/health` нь `mysql: "ok"` өгөх ёстой.
 
 ### 2. Шинэ орчны хувьсагчид
 
@@ -445,30 +460,52 @@ hPanel → Environment variables хэсэгт дараахыг **нэмнэ** (�
 [.env.example](../.env.example)-ээс үз):
 
 ```
-SITE_DATABASE_URL        Postgres — MySQL-ийн DATABASE_URL-ээс ТУСДАА
-SITE_DATABASE_SSL
-SITE_DATABASE_POOL_MAX
 NEXT_PUBLIC_SITE_URL     нийтийн сайтын үндсэн хаяг (OG зураг, metadata)
 ADMIN_PASSWORD           /admin руу нэвтрэх нууц үг
 ADMIN_SESSION_SECRET     cookie гарын үсэглэх түлхүүр
 FB_PAGE_ID FB_PAGE_ACCESS_TOKEN FB_APP_SECRET FB_VERIFY_TOKEN
 ```
 
-Postgres нь Hostinger-ийн серверээс **хүрэх боломжтой** байх ёстой (гадны
-холболт нээлттэй, эсвэл ижил сүлжээнд). Хүрэхгүй бол нийтийн сайт бүхэлдээ
-унана — `queries.ts` нь DB унасан үед хуудсыг 500 болгодоггүй ч контент хоосон
-гарна.
+`SITE_DATABASE_URL`-ыг **оруулахгүй**. Сайтын хүснэгтүүд `site_` угтвартай тул
+дашбоардын MySQL дотор зэрэгцэн сууж, `DATABASE_URL`-ыг дагана — холболтын
+pool ч хуваалцагдана. Shared hosting дээр холболт хомс байдаг тул хоёр тусдаа
+pool барих нь шууд алдагдал. Сайтыг өөр сан руу салгах өдөр л энэ хувьсагч
+хэрэг болно.
+
+> ⚠ Уг сайт эхлээд **Postgres** дээр бичигдсэн байсан. Hostinger-ийн shared
+> hosting дээр Postgres байхгүй тул `site_*` схем MySQL рүү хөрвүүлэгдсэн —
+> `distinct on`, `ilike`, `::int`, `returning`, `nulls last` зэрэг зөвхөн
+> Postgres дээр байдаг зүйлс кодод үлдээгүй. Хуучин Postgres сан дээр өгөгдөл
+> байсан бол гараар зөөнө (`site_toli`-г `npm run site:toli:import` дахин
+> ажиллуулж нөхөх нь хамгийн хялбар).
 
 ### 3. Схем түлхэхдээ ХОЁР команд
 
+Хоёр схем нэг MySQL санд зэрэгцэн сууж байгаа ч **тусдаа config**-той:
+
 ```bash
-npm run db:push        # MySQL — Бид туслая
-npm run site:db:push   # Postgres — Уран бичлэг (site_* хүснэгтүүд)
+npm run db:generate        # drizzle/       — Бид туслая (site_*-аас БУСАД)
+npm run site:db:generate   # drizzle-site/  — Уран бичлэг (зөвхөн site_*)
 ```
 
-`site:db:push` нь `drizzle.site.config.ts`-ыг ашиглах бөгөөд тэнд
-`tablesFilter: ["site_*"]` тавигдсан. **Түүнийг хэзээ ч бүү хас** — үгүй бол
-drizzle схемдээ байхгүй бүх хүснэгтийг устгах SQL үүсгэнэ.
+Config тус бүрд эсрэг `tablesFilter` тавигдсан (`!site_*` ба `site_*`).
+**Түүнийг хэзээ ч бүү хас** — үгүй бол drizzle нөгөө аппын бүх хүснэгтийг
+«схемд алга» гэж үзээд DROP TABLE үүсгэнэ.
+
+Энэ баазын MariaDB дээр `drizzle-kit push` чимээгүй унадаг (дээрх хэсгийг үз)
+тул гарсан SQL-ийг phpMyAdmin-аар гараар ажиллуулна. Сайтын хүснэгтүүдийг
+анх үүсгэх SQL нь `drizzle-site/0000_*.sql` дотор.
+
+Хүснэгт үүссэний дараа жишиг агуулгыг суулгана:
+
+```bash
+npm run site:db:seed       # сургалт, бүтээгдэхүүн, мэдээ, тохиргоо
+npm run site:toli:import   # толь (~150k мөр) — эх файл бэлэн байх ёстой
+```
+
+`site:db:seed` нь давхардсан `slug`-ийг ДАРЖ бичдэг тул админаас зассан
+контентоо дарахгүйн тулд эхний удаа л ажиллуулна. Тохиргоог харин зөвхөн
+байхгүйг нь нэмнэ.
 
 ### 4. `public/` нь standalone build-д ЗААВАЛ хамт явна
 

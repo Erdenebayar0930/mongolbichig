@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt, ilike, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, like, ne, or, sql } from "drizzle-orm";
 
 import { db } from "./db";
 import {
@@ -93,7 +93,12 @@ export function getCourses(
         )
         .orderBy(
           asc(siteCourses.sortOrder),
-          sql`${siteCourses.startDate} asc nulls last`,
+          // ⚠ MySQL-д `nulls last` байхгүй бөгөөд NULL нь анхдагчаар ЭХЭНД
+          // эрэмбэлэгддэг. «Тасралтгүй элсэлттэй» (огноогүй) сургалт
+          // жагсаалтын ТЭРГҮҮНД гарах нь буруу тул NULL-ыг 1 болгож эхлээд
+          // эрэмбэлээд, дараа нь огноогоор эрэмбэлнэ.
+          sql`${siteCourses.startDate} is null asc`,
+          asc(siteCourses.startDate),
           desc(siteCourses.createdAt)
         )
         .limit(limit),
@@ -233,7 +238,7 @@ export function getProductCounts(): Promise<Record<string, number>> {
       const rows = await db
         .select({
           category: siteProducts.category,
-          count: sql<number>`count(*)::int`,
+          count: sql<number>`cast(count(*) as signed)`,
         })
         .from(siteProducts)
         .where(publishedProduct)
@@ -356,9 +361,9 @@ export function search(term: string): Promise<SearchResults> {
             and(
               publishedCourse,
               or(
-                ilike(siteCourses.title, needle),
-                ilike(siteCourses.summary, needle),
-                ilike(siteCourses.body, needle)
+                like(siteCourses.title, needle),
+                like(siteCourses.summary, needle),
+                like(siteCourses.body, needle)
               )
             )
           )
@@ -370,9 +375,9 @@ export function search(term: string): Promise<SearchResults> {
             and(
               publishedProduct,
               or(
-                ilike(siteProducts.name, needle),
-                ilike(siteProducts.summary, needle),
-                ilike(siteProducts.body, needle)
+                like(siteProducts.name, needle),
+                like(siteProducts.summary, needle),
+                like(siteProducts.body, needle)
               )
             )
           )
@@ -384,9 +389,9 @@ export function search(term: string): Promise<SearchResults> {
             and(
               publishedNews,
               or(
-                ilike(siteNews.title, needle),
-                ilike(siteNews.excerpt, needle),
-                ilike(siteNews.body, needle)
+                like(siteNews.title, needle),
+                like(siteNews.excerpt, needle),
+                like(siteNews.body, needle)
               )
             )
           )
@@ -581,17 +586,24 @@ export function adminStats(): Promise<AdminStats> {
   return safe(
     "adminStats",
     async () => {
-      const result = await db.execute<AdminStats>(sql`
+      /**
+       * ⚠ MySQL дээр давхар хашилт нь ИДЕНТИФИКАТОР биш МӨРИЙН утга
+       * (ANSI_QUOTES асаалттай биснээс бусад үед). Тиймээс багана нэрийг
+       * хашилтгүй бичив — кодын талд яг ийм үсгийн хэлбэрээр буцна.
+       *
+       * mysql2 нь `[rows, fields]` хос буцаадаг тул эхний элементийг авна.
+       */
+      const [rows] = await db.execute<AdminStats[]>(sql`
         select
-          (select count(*) from ${siteCourses})::int as "courses",
-          (select count(*) from ${siteProducts})::int as "products",
-          (select count(*) from ${siteOrders} where status = 'new')::int as "newOrders",
-          (select count(*) from ${siteEnrollments} where status = 'new')::int as "newEnrollments",
-          (select coalesce(sum(total), 0) from ${siteOrders}
-            where status in ('paid', 'shipped', 'done'))::int as "revenue"
+          cast((select count(*) from ${siteCourses}) as signed) as courses,
+          cast((select count(*) from ${siteProducts}) as signed) as products,
+          cast((select count(*) from ${siteOrders} where status = 'new') as signed) as newOrders,
+          cast((select count(*) from ${siteEnrollments} where status = 'new') as signed) as newEnrollments,
+          cast((select coalesce(sum(total), 0) from ${siteOrders}
+            where status in ('paid', 'shipped', 'done')) as signed) as revenue
       `);
 
-      return result.rows[0];
+      return (rows as unknown as AdminStats[])[0];
     },
     { courses: 0, products: 0, newOrders: 0, newEnrollments: 0, revenue: 0 }
   );
@@ -645,15 +657,22 @@ export const TOLI_LETTERS = [
  * утгын тайлбарыг бид хураагаагүй. Тиймээс шүүлтгүй үзүүлбэл ижилхэн дөрвөн
  * хөзөр дараалж, толь эвдэрсэн мэт харагдана.
  *
- * `distinct on (cyrillic, mongol)` нь ЯЛГААТАЙ бичлэг бүрээс нэгийг үлдээнэ:
- * «гал» нэг хөзөр болж хураагдана, харин «аа» нь ᠠ᠋ / ᠠ / ᠠᠭ᠎ᠠ гэсэн гурван
- * жинхэнэ өөр бичлэгээ хадгална. 59,873 бичлэг → 54,118 үзүүлэх нэгж.
+ * (cyrillic, mongol) хосоор бүлэглэх нь ЯЛГААТАЙ бичлэг бүрээс нэгийг
+ * үлдээнэ: «гал» нэг хөзөр болж хураагдана, харин «аа» нь ᠠ᠋ / ᠠ / ᠠᠭ᠎ᠠ
+ * гэсэн гурван жинхэнэ өөр бичлэгээ хадгална. 59,873 бичлэг → 54,118 нэгж.
  *
- * `order by`-ийн эхэнд `distinct on`-ий баганууд ЗААВАЛ байх ёстой (Postgres
- * шаардлага) — араас нь `ug_id` тавьсан нь бүлэг тус бүрээс эх толинд түрүүлж
+ * ⚠ MySQL-д Postgres-ийн `distinct on` БАЙХГҮЙ. Оронд нь `group by` дээр
+ * `min(ug_id)` авна — `distinct on` нь `order by ..., ug_id asc`-тай хосолж
+ * яг үүнтэй ижил үр дүн өгдөг байсан: бүлэг тус бүрээс эх толинд түрүүлж
  * бүртгэгдсэнийг нь сонгоно.
  */
-const DISTINCT_SPELLING = [siteToli.cyrillic, siteToli.mongol] as const;
+function distinctSpellings() {
+  return db.select({
+    ugId: sql<number>`cast(min(${siteToli.ugId}) as signed)`,
+    cyrillic: siteToli.cyrillic,
+    mongol: siteToli.mongol,
+  });
+}
 
 export type ToliLookup = {
   /** Яг тэр үг — өөр бичлэгтэй омоним байвал хэд хэдэн мөр */
@@ -675,37 +694,21 @@ export function toliLookup(term: string, limit = 40): Promise<ToliLookup> {
     "toliLookup",
     async () => {
       const [exact, prefix] = await Promise.all([
-        db
-          .selectDistinctOn([...DISTINCT_SPELLING], {
-            ugId: siteToli.ugId,
-            cyrillic: siteToli.cyrillic,
-            mongol: siteToli.mongol,
-          })
+        distinctSpellings()
           .from(siteToli)
           .where(eq(siteToli.cyrillic, needle))
-          .orderBy(
-            asc(siteToli.cyrillic),
-            asc(siteToli.mongol),
-            asc(siteToli.ugId)
-          ),
-        // ⚠ `LIKE` нь `site_toli_cyrillic_pattern_idx`-ээр л хурдан ажиллана
-        // (schema.ts дахь тайлбарыг үз). Индексгүй бол 60k мөр бүтнээр
-        // уншигдана.
-        db
-          .selectDistinctOn([...DISTINCT_SPELLING], {
-            ugId: siteToli.ugId,
-            cyrillic: siteToli.cyrillic,
-            mongol: siteToli.mongol,
-          })
+          .groupBy(siteToli.cyrillic, siteToli.mongol)
+          .orderBy(asc(siteToli.cyrillic), asc(siteToli.mongol)),
+        // `LIKE 'мон%'` нь угтвараар хайдаг тул `site_toli_cyrillic_idx`-ийг
+        // ашиглана — MySQL-ийн utf8mb4 collation дээр нэмэлт индекс
+        // шаардлагагүй (Postgres дээр `text_pattern_ops` хэрэгтэй байсан).
+        distinctSpellings()
           .from(siteToli)
           .where(
             sql`${siteToli.cyrillic} like ${likePrefix(needle)} escape ${ESCAPE_CHAR}`
           )
-          .orderBy(
-            asc(siteToli.cyrillic),
-            asc(siteToli.mongol),
-            asc(siteToli.ugId)
-          )
+          .groupBy(siteToli.cyrillic, siteToli.mongol)
+          .orderBy(asc(siteToli.cyrillic), asc(siteToli.mongol))
           .limit(limit + 8),
       ]);
 
@@ -746,26 +749,18 @@ export function toliByLetter(
     "toliByLetter",
     async () => {
       const [entries, counted] = await Promise.all([
-        db
-          .selectDistinctOn([...DISTINCT_SPELLING], {
-            ugId: siteToli.ugId,
-            cyrillic: siteToli.cyrillic,
-            mongol: siteToli.mongol,
-          })
+        distinctSpellings()
           .from(siteToli)
           .where(match)
-          .orderBy(
-            asc(siteToli.cyrillic),
-            asc(siteToli.mongol),
-            asc(siteToli.ugId)
-          )
+          .groupBy(siteToli.cyrillic, siteToli.mongol)
+          .orderBy(asc(siteToli.cyrillic), asc(siteToli.mongol))
           .limit(perPage)
           .offset(page * perPage),
         // Тоолол нь жагсаалттайгаа ижил шүүлттэй байх ЁСТОЙ — эс бөгөөс
         // сүүлийн хуудас хоосон гарч, «60 үг» гэж бичээд 48-ыг үзүүлнэ.
         db
           .select({
-            n: sql<number>`count(distinct (${siteToli.cyrillic}, ${siteToli.mongol}))::int`,
+            n: sql<number>`cast(count(distinct ${siteToli.cyrillic}, ${siteToli.mongol}) as signed)`,
           })
           .from(siteToli)
           .where(match),
@@ -788,7 +783,7 @@ export function toliCount(): Promise<number> {
     async () => {
       const rows = await db
         .select({
-          n: sql<number>`count(distinct (${siteToli.cyrillic}, ${siteToli.mongol}))::int`,
+          n: sql<number>`cast(count(distinct ${siteToli.cyrillic}, ${siteToli.mongol}) as signed)`,
         })
         .from(siteToli);
       return rows[0]?.n ?? 0;

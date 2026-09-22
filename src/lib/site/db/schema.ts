@@ -1,80 +1,136 @@
 import {
   boolean,
+  customType,
   date,
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 /**
  * «Уран бичлэг & Монгол өв соёл» сайтын схем.
  *
- * Бүх хүснэгт `site_` угтвартай — dashboard-тай нэг Postgres дээр сууж байгаа
- * тул drizzle.config.ts дахь `tablesFilter: ["site_*"]` энэ угтварт тулгуурлаж
- * dashboard-ын хүснэгтүүдийг хамгаална. Шинэ хүснэгт нэмэх бүрдээ угтварыг
- * заавал хадгална.
+ * Бүх хүснэгт `site_` угтвартай — dashboard-тай нэг MySQL дээр сууж байгаа
+ * тул drizzle.site.config.ts дахь `tablesFilter: ["site_*"]` энэ угтварт
+ * тулгуурлаж dashboard-ын хүснэгтүүдийг хамгаална. Шинэ хүснэгт нэмэх бүрдээ
+ * угтварыг заавал хадгална.
  *
  * Мөнгөн дүн бүхэлдээ **бүхэл тоо, төгрөгөөр**. Монголд мөнгө хуваагддаггүй
  * тул decimal хэрэггүй — харин float ашиглавал 1_200_000 * 3 мэтийн үржвэрт
  * дугуйруулалтын алдаа орох эрсдэлтэй.
+ *
+ * MySQL-ийн ялгаатай тал (Postgres-ээс хөрвүүлэхэд анхаарсан зүйлс — dashboard
+ * схемийнхтэй ижил зарчим, [src/lib/db/schema.ts](../../db/schema.ts)):
+ *
+ *  • UUID төрөл байхгүй — `varchar(36)` дээр апп талаас `crypto.randomUUID()`
+ *    утга онооно.
+ *  • TEXT багана индекслэхэд урьдчилсан урт шаардагддаг тул индекс, unique,
+ *    foreign key-д оролцох бүх багана `varchar(n)` байна.
+ *  • TEXT / JSON баганад DB талын DEFAULT тавих боломжгүй — `$defaultFn`-ээр
+ *    апп талаас анхдагчийг өгнө. Бүх бичилт Drizzle-ээр явдаг тул хангалттай.
+ *  • TIMESTAMP дотооддоо UTC-гээр хадгалагдана; холболтын цагийн бүсийг
+ *    [createPool.ts](../../db/createPool.ts) UTC болгож тогтоосон.
  */
+
+/** UUID хэлбэрийн үндсэн түлхүүр — MySQL-д төрөл нь байхгүй тул varchar(36) */
+const uuidPk = () =>
+  varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID());
+
+/** Бусад хүснэгт рүү заах UUID гадаад түлхүүр */
+const uuidRef = (name: string) => varchar(name, { length: 36 });
+
+/**
+ * Индекслэгддэг мөрийн дээд урт.
+ *
+ * utf8mb4 дээр индексийн түлхүүр тэмдэгт тутамд 4 байт эзэлдэг. MySQL 5.7 /
+ * MariaDB-ийн хуучин хувилбарууд InnoDB индексийг 767 байтаар хязгаарладаг
+ * тул 191 нь аюулгүй дээд хэмжээ (191 × 4 = 764).
+ */
+const SLUG_LEN = 191;
+
+/** Урт чөлөөт бичвэр — анхдагч нь хоосон мөр (DB default тавих боломжгүй) */
+const bodyText = (name: string) =>
+  text(name)
+    .notNull()
+    .$defaultFn(() => "");
+
+/**
+ * JSON багана — MySQL болон MariaDB хоёуланд ажиллана.
+ *
+ * MySQL 8-д JSON нь бие даасан төрөл тул драйвер өөрөө задалж объект өгдөг.
+ * MariaDB-д JSON нь LONGTEXT-ийн ӨӨР НЭР бөгөөд драйвер МӨРӨӨР буцаадаг —
+ * тэр үед `row.syllabus` нь массив биш мөр болж, `.map()` дуудлагууд унана.
+ * Тиймээс мөр ирвэл өөрсдөө задална.
+ */
+const jsonCol = <T>(name: string) =>
+  customType<{ data: T; driverData: string }>({
+    dataType: () => "json",
+    toDriver: (value: T) => JSON.stringify(value),
+    fromDriver: (value: unknown) =>
+      typeof value === "string" ? (JSON.parse(value) as T) : (value as T),
+  })(name);
+
+/** Үүсгэсэн / зассан огноо — апп талаас онооно (TIMESTAMP-д DEFAULT нэг л удаа) */
+const nowCol = (name: string) =>
+  timestamp(name)
+    .notNull()
+    .$defaultFn(() => new Date());
 
 /* -------------------------------------------------------------------------- */
 /* Сургалт                                                                     */
 /* -------------------------------------------------------------------------- */
 
 /** Монгол бичиг / уран бичлэгийн сургалтын зар */
-export const siteCourses = pgTable(
+export const siteCourses = mysqlTable(
   "site_courses",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuidPk(),
     /** URL-д харагдах нэр: "anhan-shatnii-mongol-bichig" */
-    slug: text("slug").notNull(),
-    title: text("title").notNull(),
+    slug: varchar("slug", { length: SLUG_LEN }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
     /** anhan | dund | ahisan | huuhed */
-    level: text("level").notNull().default("anhan"),
+    level: varchar("level", { length: 32 }).notNull().default("anhan"),
     /** tanhim | onlain | holimog */
-    format: text("format").notNull().default("tanhim"),
+    format: varchar("format", { length: 32 }).notNull().default("tanhim"),
     /** Жагсаалтад гарах богино тайлбар */
-    summary: text("summary").notNull().default(""),
+    summary: bodyText("summary"),
     /** Дэлгэрэнгүй — мөр бүр нэг догол мөр */
-    body: text("body").notNull().default(""),
+    body: bodyText("body"),
     /** Хөтөлбөрийн сэдвүүд — жагсаалт болж харагдана */
-    syllabus: jsonb("syllabus").$type<string[]>().notNull().default([]),
+    syllabus: jsonCol<string[]>("syllabus")
+      .notNull()
+      .$defaultFn(() => []),
     /** Төгрөгөөр. 0 бол «үнэгүй» гэж харуулна */
-    price: integer("price").notNull().default(0),
+    price: int("price").notNull().default(0),
     /** Үргэлжлэх хугацаа — 7 хоногоор */
-    durationWeeks: integer("duration_weeks").notNull().default(4),
+    durationWeeks: int("duration_weeks").notNull().default(4),
     /** Чөлөөт бичвэр: "Мя, Пү — 19:00-21:00" */
-    schedule: text("schedule").notNull().default(""),
+    schedule: varchar("schedule", { length: 255 }).notNull().default(""),
     /**
      * `date` төрлийг мөрөөр авна ("2026-09-15"). Цагийн бүстэй timestamp
      * ашиглавал админ `<input type="date">`-д оруулсан өдөр UTC руу хөрвөхдөө
      * нэг хоногоор ухарч харагддаг.
      */
-    startDate: date("start_date"),
+    startDate: date("start_date", { mode: "string" }),
     /** Нийт суудал. 0 бол «хязгааргүй» */
-    seats: integer("seats").notNull().default(0),
+    seats: int("seats").notNull().default(0),
     /** Бүртгэгдсэн тоо — админ гараар засна */
-    seatsTaken: integer("seats_taken").notNull().default(0),
-    location: text("location").notNull().default(""),
-    coverUrl: text("cover_url").notNull().default(""),
+    seatsTaken: int("seats_taken").notNull().default(0),
+    location: varchar("location", { length: 255 }).notNull().default(""),
+    coverUrl: varchar("cover_url", { length: 1024 }).notNull().default(""),
     /** draft | published */
-    status: text("status").notNull().default("published"),
+    status: varchar("status", { length: 32 }).notNull().default("published"),
     /** Нүүрний слайдерт гарах эсэх */
     featured: boolean("featured").notNull().default(false),
-    sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    sortOrder: int("sort_order").notNull().default(0),
+    createdAt: nowCol("created_at"),
+    updatedAt: nowCol("updated_at"),
   },
   (table) => [
     uniqueIndex("site_courses_slug_idx").on(table.slug),
@@ -84,27 +140,27 @@ export const siteCourses = pgTable(
 );
 
 /** Сургалтад бүртгүүлэх хүсэлт */
-export const siteEnrollments = pgTable(
+export const siteEnrollments = mysqlTable(
   "site_enrollments",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    courseId: uuid("course_id").references(() => siteCourses.id, {
+    id: uuidPk(),
+    courseId: uuidRef("course_id").references(() => siteCourses.id, {
       onDelete: "set null",
     }),
     /**
      * Сургалт устсан ч хүсэлтийн түүх уншигдахуйц үлдэх ёстой тул нэрийг
      * хуулбарлаж хадгална.
      */
-    courseTitle: text("course_title").notNull().default(""),
-    name: text("name").notNull(),
-    phone: text("phone").notNull(),
-    email: text("email").notNull().default(""),
-    note: text("note").notNull().default(""),
-    /** new | confirmed | cancelled */
-    status: text("status").notNull().default("new"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    courseTitle: varchar("course_title", { length: 255 })
       .notNull()
-      .defaultNow(),
+      .default(""),
+    name: varchar("name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 32 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull().default(""),
+    note: bodyText("note"),
+    /** new | confirmed | cancelled */
+    status: varchar("status", { length: 32 }).notNull().default("new"),
+    createdAt: nowCol("created_at"),
   },
   (table) => [
     index("site_enrollments_course_idx").on(table.courseId),
@@ -117,37 +173,35 @@ export const siteEnrollments = pgTable(
 /* -------------------------------------------------------------------------- */
 
 /** Захиалгат бүтээл, бичгийн хэрэгсэл, ном */
-export const siteProducts = pgTable(
+export const siteProducts = mysqlTable(
   "site_products",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    slug: text("slug").notNull(),
-    name: text("name").notNull(),
+    id: uuidPk(),
+    slug: varchar("slug", { length: SLUG_LEN }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
     /** bichleg | hereglel | nom | beleg */
-    category: text("category").notNull().default("bichleg"),
-    summary: text("summary").notNull().default(""),
-    body: text("body").notNull().default(""),
-    price: integer("price").notNull().default(0),
+    category: varchar("category", { length: 32 }).notNull().default("bichleg"),
+    summary: bodyText("summary"),
+    body: bodyText("body"),
+    price: int("price").notNull().default(0),
     /** Хямдралын өмнөх үнэ. 0 бол хямдралгүй */
-    oldPrice: integer("old_price").notNull().default(0),
-    coverUrl: text("cover_url").notNull().default(""),
+    oldPrice: int("old_price").notNull().default(0),
+    coverUrl: varchar("cover_url", { length: 1024 }).notNull().default(""),
     /** Нэмэлт зургууд — дэлгэрэнгүй хуудсанд */
-    images: jsonb("images").$type<string[]>().notNull().default([]),
+    images: jsonCol<string[]>("images")
+      .notNull()
+      .$defaultFn(() => []),
     /**
      * Үлдэгдэл. `-1` = захиалгаар хийгддэг тул үлдэгдэл хамаагүй
      * (уран бичлэгийн бүтээл ихэвчлэн ийм).
      */
-    stock: integer("stock").notNull().default(-1),
+    stock: int("stock").notNull().default(-1),
     /** draft | published */
-    status: text("status").notNull().default("published"),
+    status: varchar("status", { length: 32 }).notNull().default("published"),
     featured: boolean("featured").notNull().default(false),
-    sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    sortOrder: int("sort_order").notNull().default(0),
+    createdAt: nowCol("created_at"),
+    updatedAt: nowCol("updated_at"),
   },
   (table) => [
     uniqueIndex("site_products_slug_idx").on(table.slug),
@@ -157,30 +211,26 @@ export const siteProducts = pgTable(
 );
 
 /** Захиалгын толгой */
-export const siteOrders = pgTable(
+export const siteOrders = mysqlTable(
   "site_orders",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuidPk(),
     /** Хэрэглэгчид хэлэх дугаар: "UB-260817-4F2K" */
-    orderNo: text("order_no").notNull(),
-    customerName: text("customer_name").notNull(),
-    phone: text("phone").notNull(),
-    email: text("email").notNull().default(""),
-    address: text("address").notNull().default(""),
-    note: text("note").notNull().default(""),
+    orderNo: varchar("order_no", { length: 32 }).notNull(),
+    customerName: varchar("customer_name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 32 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull().default(""),
+    address: varchar("address", { length: 512 }).notNull().default(""),
+    note: bodyText("note"),
     /** Хүргэлтийн арга: pickup | delivery */
-    delivery: text("delivery").notNull().default("pickup"),
-    subtotal: integer("subtotal").notNull().default(0),
-    shipping: integer("shipping").notNull().default(0),
-    total: integer("total").notNull().default(0),
+    delivery: varchar("delivery", { length: 32 }).notNull().default("pickup"),
+    subtotal: int("subtotal").notNull().default(0),
+    shipping: int("shipping").notNull().default(0),
+    total: int("total").notNull().default(0),
     /** new | confirmed | paid | shipped | done | cancelled */
-    status: text("status").notNull().default("new"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 32 }).notNull().default("new"),
+    createdAt: nowCol("created_at"),
+    updatedAt: nowCol("updated_at"),
   },
   (table) => [
     uniqueIndex("site_orders_no_idx").on(table.orderNo),
@@ -190,22 +240,22 @@ export const siteOrders = pgTable(
 );
 
 /** Захиалгын мөр */
-export const siteOrderItems = pgTable(
+export const siteOrderItems = mysqlTable(
   "site_order_items",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    orderId: uuid("order_id")
+    id: uuidPk(),
+    orderId: uuidRef("order_id")
       .notNull()
       .references(() => siteOrders.id, { onDelete: "cascade" }),
-    productId: uuid("product_id").references(() => siteProducts.id, {
+    productId: uuidRef("product_id").references(() => siteProducts.id, {
       onDelete: "set null",
     }),
     /** Захиалгын үеийн нэр, үнэ — бүтээгдэхүүн өөрчлөгдсөн ч хөшинө */
-    name: text("name").notNull(),
-    slug: text("slug").notNull().default(""),
-    price: integer("price").notNull().default(0),
-    qty: integer("qty").notNull().default(1),
-    lineTotal: integer("line_total").notNull().default(0),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: SLUG_LEN }).notNull().default(""),
+    price: int("price").notNull().default(0),
+    qty: int("qty").notNull().default(1),
+    lineTotal: int("line_total").notNull().default(0),
   },
   (table) => [index("site_order_items_order_idx").on(table.orderId)]
 );
@@ -215,31 +265,27 @@ export const siteOrderItems = pgTable(
 /* -------------------------------------------------------------------------- */
 
 /** Мэдээ, нийтлэл — монгол бичгийн тухай агуулга */
-export const siteNews = pgTable(
+export const siteNews = mysqlTable(
   "site_news",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    slug: text("slug").notNull(),
-    title: text("title").notNull(),
-    excerpt: text("excerpt").notNull().default(""),
-    body: text("body").notNull().default(""),
-    coverUrl: text("cover_url").notNull().default(""),
+    id: uuidPk(),
+    slug: varchar("slug", { length: SLUG_LEN }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    excerpt: bodyText("excerpt"),
+    body: bodyText("body"),
+    coverUrl: varchar("cover_url", { length: 1024 }).notNull().default(""),
     /** Чөлөөт шошго: "Түүх", "Зөвлөгөө", "Арга хэмжээ" */
-    tag: text("tag").notNull().default("Мэдээ"),
-    author: text("author").notNull().default("Уран бичлэг"),
+    tag: varchar("tag", { length: 64 }).notNull().default("Мэдээ"),
+    author: varchar("author", { length: 255 })
+      .notNull()
+      .default("Уран бичлэг"),
     /** draft | published */
-    status: text("status").notNull().default("published"),
+    status: varchar("status", { length: 32 }).notNull().default("published"),
     featured: boolean("featured").notNull().default(false),
-    viewCount: integer("view_count").notNull().default(0),
-    publishedAt: timestamp("published_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    viewCount: int("view_count").notNull().default(0),
+    publishedAt: nowCol("published_at"),
+    createdAt: nowCol("created_at"),
+    updatedAt: nowCol("updated_at"),
   },
   (table) => [
     uniqueIndex("site_news_slug_idx").on(table.slug),
@@ -249,14 +295,12 @@ export const siteNews = pgTable(
 
 /**
  * Холбоо барих мэдээлэл, дансны дугаар зэрэг — админаас засагдана.
- * Түлхүүрийн жагсаалт `src/lib/settings.ts`-д тодорхойлогдсон.
+ * Түлхүүрийн жагсаалт `src/lib/site/settings.ts`-д тодорхойлогдсон.
  */
-export const siteSettings = pgTable("site_settings", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull().default(""),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+export const siteSettings = mysqlTable("site_settings", {
+  key: varchar("key", { length: SLUG_LEN }).primaryKey(),
+  value: bodyText("value"),
+  updatedAt: nowCol("updated_at"),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -266,11 +310,11 @@ export const siteSettings = pgTable("site_settings", {
 /**
  * Кирилл → монгол бичгийн толь, mongoltoli.mn-ээс хураасан (~150k бичлэг).
  *
- * Яагаад Postgres-т вэ: толь нь `mongolLexicon.ts` шиг `"use client"` мод руу
- * орвол БҮХЭЛДЭЭ хөтөч рүү явна. 150k бичлэг нь хэдэн MB — хөрвүүлэгчийн
- * хуудсыг ачаалахын аргагүй болгоно. Тиймээс энд сууж, `/api/toli`-оор
- * багцаар хайгдана. `mongolLexicon.ts` нь багшаар нягталсан цөм үгсийг
- * хадгалсаар үлдэнэ — тэр нь шууд, сүлжээгүй ажилладаг хурдан зам.
+ * Яагаад санд вэ: толь нь `mongolLexicon.ts` шиг `"use client"` мод руу орвол
+ * БҮХЭЛДЭЭ хөтөч рүү явна. 150k бичлэг нь хэдэн MB — хөрвүүлэгчийн хуудсыг
+ * ачаалахын аргагүй болгоно. Тиймээс энд сууж, `/api/toli`-оор багцаар
+ * хайгдана. `mongolLexicon.ts` нь багшаар нягталсан цөм үгсийг хадгалсаар
+ * үлдэнэ — тэр нь шууд, сүлжээгүй ажилладаг хурдан зам.
  *
  * `cyrillic` нь ЖИЖИГ үсгээр хадгалагдана (эх сурвалж бүгдийг том үсгээр
  * өгдөг) — хайлт нормчлолгүй таарах ёстой.
@@ -278,33 +322,25 @@ export const siteSettings = pgTable("site_settings", {
  * Нэг кирилл үг олон бичлэгтэй байж болно (омоним): `ugId` нь эх толийн
  * дугаар, хамгийн багыг нь үндсэн утга гэж үзнэ.
  */
-export const siteToli = pgTable(
+export const siteToli = mysqlTable(
   "site_toli",
   {
     /** mongoltoli.mn дахь ug_id — эх сурвалж руу буцаж холбох түлхүүр */
-    ugId: integer("ug_id").primaryKey(),
-    cyrillic: text("cyrillic").notNull(),
+    ugId: int("ug_id").primaryKey(),
+    /**
+     * Хайлт үргэлж энэ баганаар явна. Postgres дээр угтварын хайлтад
+     * `text_pattern_ops` нэмэлт индекс шаардлагатай байсан бол MySQL-ийн
+     * utf8mb4 collation нь `LIKE 'мон%'`-д индексийг шууд ашигладаг тул
+     * нэг индекс хангалттай.
+     */
+    cyrillic: varchar("cyrillic", { length: SLUG_LEN }).notNull(),
     /** Уламжлалт монгол бичгийн Unicode хэлбэр */
-    mongol: text("mongol").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    mongol: varchar("mongol", { length: 255 }).notNull(),
+    createdAt: nowCol("created_at"),
   },
   (table) => [
-    // Хайлт үргэлж кирилл үгээр явна — омоним олон мөр буцаана.
+    // Омоним олон мөр буцаана — unique биш энгийн индекс.
     index("site_toli_cyrillic_idx").on(table.cyrillic),
-    // Угтвараар хайхад (`LIKE 'мон%'`) дээрх индекс АЖИЛЛАХГҮЙ: DB-ийн
-    // collation нь `English_United States.1252` бөгөөд `LIKE`-ийн угтварын
-    // оптимизац зөвхөн `C` collation эсвэл `text_pattern_ops`-той л хийгддэг.
-    // Түүнгүйгээр 60k мөр бүрэн уншигдана (хэмжсэн: 5.9 мс ↔ индекстэй 0.1 мс).
-    //
-    // ⚠ `cyrillic >= 'мон' AND cyrillic < 'моо'` гэсэн «муж» аргыг бүү оролд —
-    // энэ collation кириллийг кодын дарааллаар эрэмбэлдэггүй (ё нь е-ийн
-    // дотор, ө нь о-гийн дотор, я хамгийн сүүлд) тул муж нь буруу үг цуглуулж,
-    // зарим үсгийг бүрмөсөн алддаг (хэмжсэн: «я» → 811 үгийн оронд 0).
-    index("site_toli_cyrillic_pattern_idx").on(
-      table.cyrillic.op("text_pattern_ops")
-    ),
   ]
 );
 

@@ -19,8 +19,9 @@ import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
 import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/mysql2";
+
+import { createDbPool, resolveDatabaseUrl } from "../../src/lib/db/createPool";
 
 import { siteToli } from "../../src/lib/site/db/schema";
 
@@ -58,11 +59,9 @@ async function main() {
     );
   }
 
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_SSL === "disable" ? false : undefined,
-  });
-  const db = drizzle(pool);
+  // Импорт нь ганц холболтоор багц багцаар бичнэ — pool-ыг 1-ээр хязгаарлав.
+  const pool = createDbPool(resolveDatabaseUrl()!, 1);
+  const db = drizzle(pool, { mode: "default" });
 
   try {
     let batch: Row[] = [];
@@ -74,11 +73,12 @@ async function main() {
       await db
         .insert(siteToli)
         .values(batch)
-        .onConflictDoUpdate({
-          target: siteToli.ugId,
+        // MySQL-д `excluded` гэсэн хуурамч хүснэгт байхгүй — оронд нь
+        // `values(<багана>)` нь INSERT-д ирсэн утгыг заана.
+        .onDuplicateKeyUpdate({
           set: {
-            cyrillic: sql`excluded.cyrillic`,
-            mongol: sql`excluded.mongol`,
+            cyrillic: sql`values(cyrillic)`,
+            mongol: sql`values(mongol)`,
           },
         });
       total += batch.length;
@@ -119,10 +119,10 @@ async function main() {
     if (malformed > 0) console.log(`⚠ гэмтсэн мөр алгасав: ${malformed}`);
 
     const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`cast(count(*) as signed)` })
       .from(siteToli);
     const [{ distinct }] = await db
-      .select({ distinct: sql<number>`count(distinct cyrillic)::int` })
+      .select({ distinct: sql<number>`cast(count(distinct cyrillic) as signed)` })
       .from(siteToli);
 
     console.log(`✓ Нийт бичлэг: ${count}`);

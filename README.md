@@ -81,22 +81,31 @@ git clone https://github.com/Erdenebayar0930/bid_tuslay.git
 
 Энэ репо **хоёр бүтээгдэхүүнийг нэг Next.js апп**-аар үйлчилдэг. Тэдгээр нь
 route group-аар тусгаарлагдсан бөгөөд тус бүр **өөрийн root layout, өөрийн
-CSS, өөрийн өгөгдлийн сан, өөрийн нэвтрэлттэй**.
+CSS, өөрийн схем, өөрийн нэвтрэлттэй**.
 
 | | Уран бичлэг | Бид туслая |
 | --- | --- | --- |
 | Бүлэг | `src/app/(site)/` | `src/app/(udirdlaga)/` |
 | URL | `/`, `/surgalt`, `/delguur`, `/medee`, `/toli`, `/ner`, `/horvuulegch`, `/haih`, `/sags`, `/tuhai`, `/zahialga`, `/admin/*` | `/udirdlaga`, `/inventory`, `/users`, `/reports`, `/documents`, `/backup`, `/ai-analysis`, `/settings`, `/profile`, `/notifications`, `/login`, `/ui/*` |
-| Өгөгдлийн сан | **Postgres** — `SITE_DATABASE_URL` | **MySQL** — `DATABASE_URL` |
+| Өгөгдлийн сан | **MySQL** — `DATABASE_URL` (`site_*` хүснэгтүүд) | **MySQL** — `DATABASE_URL` |
 | Схем | `src/lib/site/db/schema.ts` (`site_*`) | `src/lib/db/schema.ts` |
-| Drizzle | `drizzle.site.config.ts` · `npm run site:db:push` | `drizzle.config.ts` · `npm run db:push` |
+| Drizzle | `drizzle.site.config.ts` (`tablesFilter: ["site_*"]`) | `drizzle.config.ts` (`tablesFilter: ["!site_*"]`) |
 | Нэвтрэлт | Нэг нууц үг + HMAC cookie | Firebase Auth + үүрэг |
 | Код | `src/lib/site/`, `src/components/site/` | `src/lib/`, `src/components/`, `src/layout/` |
 
-**Хоёр өгөгдлийн сан ЗОРИУДААР үлдсэн.** MySQL-ийг Postgres руу шилжүүлэх нь
-нэгтгэлийн ажлын дийлэнх, эрсдэлийн бүхнийг эзлэх байсан бөгөөд ямар ч ашиг
-өгөхгүй — хоёр бүтээгдэхүүн нэг ч хүснэгт хуваалцдаггүй. Нэг апп хоёр
-клиентийг зэрэг барих нь асуудалгүй.
+**Нэг сан, хоёр схем.** Сайт нь анх Postgres дээр бичигдсэн боловч
+Hostinger-ийн shared hosting дээр Postgres байхгүй тул MySQL руу хөрвүүлэгдсэн.
+Хүснэгтүүд нь `site_` угтвартай учир дашбоардынхтой зэрэгцэн сууж, холболтын
+pool-ыг хуваалцана — shared hosting дээр холболт хомс тул энэ нь чухал.
+
+Хоёр бүтээгдэхүүн нэг ч хүснэгт хуваалцдаггүй хэвээр; тусгаарлалтыг
+`tablesFilter` барина. Сайтыг өөр сан руу салгах бол `SITE_DATABASE_URL`
+хувьсагчийг өгөхөд л хангалттай — код нь түүнийг байвал дагана.
+
+MySQL рүү хөрвүүлэхэд `distinct on` → `group by` + `min()`, `ilike` → `like`
+(utf8mb4 collation нь регистр мэдрэхгүй), `::int` → `cast(… as signed)`,
+`returning` → id-г апп талаас урьдчилж үүсгэх, `nulls last` → `is null` эрэмбэ
+болж хувирсан. Дэлгэрэнгүйг [schema.ts](src/lib/site/db/schema.ts)-ийн толгойгоос.
 
 **Хоёр root layout.** `src/app/layout.tsx` БАЙХГҮЙ — Next нь бүлэг тус бүрийн
 `layout.tsx`-ыг root layout болгож үзнэ ([баримт](https://nextjs.org/docs/app/api-reference/file-conventions/layout)).

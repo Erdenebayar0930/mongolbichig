@@ -88,18 +88,20 @@ async function uniqueSlug(
   ignoreId: string
 ) {
   const base = slugify(desired || fallbackFrom);
-  const guard = ignoreId ? sql`and id <> ${ignoreId}::uuid` : sql.empty();
+  // MySQL-д UUID төрөл байхгүй — id нь varchar(36) тул хөрвүүлэлт хэрэггүй.
+  const guard = ignoreId ? sql`and id <> ${ignoreId}` : sql.empty();
 
   for (let suffix = 0; suffix < 50; suffix += 1) {
     const candidate = suffix === 0 ? base : `${base}-${suffix + 1}`;
 
-    const clash = await db.execute(sql`
+    // mysql2 нь `[rows, fields]` хос буцаана — pg-ийн `.rows`-той адилгүй.
+    const [rows] = await db.execute(sql`
       select 1 from ${sql.identifier(tableName)}
       where slug = ${candidate} ${guard}
       limit 1
     `);
 
-    if (clash.rows.length === 0) return candidate;
+    if ((rows as unknown as unknown[]).length === 0) return candidate;
   }
 
   // 50 хувилбар бүгд эзэлсэн — практикт тохиолдохгүй, гэхдээ давхцахаас
@@ -352,10 +354,7 @@ export async function saveSettings(formData: FormData) {
     await db
       .insert(siteSettings)
       .values({ key, value, updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: siteSettings.key,
-        set: { value, updatedAt: new Date() },
-      });
+      .onDuplicateKeyUpdate({ set: { value, updatedAt: new Date() } });
   }
 
   revalidatePublic();

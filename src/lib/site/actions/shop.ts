@@ -187,14 +187,19 @@ export async function placeOrder(
       const orderNo = makeOrderNo();
 
       try {
+        /**
+         * MySQL-д `INSERT ... RETURNING` байхгүй бөгөөд `insertId` нь
+         * AUTO_INCREMENT-д л утгатай. id нь varchar(36) UUID тул мөрийг
+         * буцааж уншихын оронд түлхүүрийг ЭНД үүсгэж, хоёр insert-д
+         * хоёуланд нь дамжуулна.
+         */
+        const orderId = crypto.randomUUID();
+
         await db.transaction(async (tx) => {
-          const [created] = await tx
-            .insert(siteOrders)
-            .values({ ...order, orderNo })
-            .returning({ id: siteOrders.id });
+          await tx.insert(siteOrders).values({ ...order, id: orderId, orderNo });
 
           await tx.insert(siteOrderItems).values(
-            lines.map((line) => ({ ...line, orderId: created.id }))
+            lines.map((line) => ({ ...line, orderId }))
           );
 
           // Тоолж буй бүтээгдэхүүний үлдэгдлийг хасна.
@@ -210,9 +215,21 @@ export async function placeOrder(
 
         return { ok: true, orderNo };
       } catch (error) {
-        const message = (error as Error).message;
         // Зөвхөн дугаарын давхцалыг дахин оролдоно; бусад алдааг доош дамжуулна.
-        if (!message.includes("site_orders_no_idx")) throw error;
+        //
+        // ⚠ Алдааны МЕССЕЖЭЭР шалгаж болохгүй. Drizzle нь драйверын алдааг
+        // ороож, `message`-ыг «Failed query: insert into …» болгон сольдог тул
+        // индексийн нэр тэнд ОГТ ОРОХГҮЙ — мессежээр шалгавал давхцал бүр
+        // хэрэглэгч рүү алдаа болж гарна. Жинхэнэ mysql2 алдаа нь `cause`
+        // дотор сууна: code = "ER_DUP_ENTRY", sqlMessage дотор индексийн нэр.
+        const cause = (error as { cause?: { code?: string; sqlMessage?: string } })
+          .cause;
+
+        const isOrderNoClash =
+          cause?.code === "ER_DUP_ENTRY" &&
+          (cause.sqlMessage ?? "").includes("site_orders_no_idx");
+
+        if (!isOrderNoClash) throw error;
       }
     }
 

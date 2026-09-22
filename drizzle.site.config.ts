@@ -5,7 +5,7 @@ import { defineConfig } from "drizzle-kit";
 // drizzle-kit нь Next.js-ийн env ачаалагчийг ашигладаггүй тул .env.local-ыг
 // өөрсдөө уншина. Эхлээд website/.env.local, байхгүй бол эцэг фолдерынхыг.
 function loadEnvLocal() {
-  if (process.env.SITE_DATABASE_URL) return;
+  if (process.env.SITE_DATABASE_URL || process.env.DATABASE_URL) return;
 
   for (const file of [".env.local", "../.env.local"]) {
     try {
@@ -22,7 +22,7 @@ function loadEnvLocal() {
         if (!process.env[key]) process.env[key] = value;
       }
 
-      if (process.env.SITE_DATABASE_URL) return;
+      if (process.env.SITE_DATABASE_URL || process.env.DATABASE_URL) return;
     } catch {
       // Файл байхгүй бол дараагийнхыг оролдоно
     }
@@ -34,12 +34,12 @@ loadEnvLocal();
 export default defineConfig({
   schema: "./src/lib/site/db/schema.ts",
   out: "./drizzle-site",
-  dialect: "postgresql",
+  dialect: "mysql",
   dbCredentials: {
-    url: process.env.SITE_DATABASE_URL!,
+    url: (process.env.SITE_DATABASE_URL || process.env.DATABASE_URL)!,
   },
   /**
-   * ⚠️ ЧУХАЛ: dashboard болон website нэг л Postgres дээр сууж байгаа.
+   * ⚠️ ЧУХАЛ: dashboard болон website нэг л MySQL дээр сууж байгаа.
    * Энэ шүүлтүүргүй бол `drizzle-kit push` нь схемд байхгүй бүх хүснэгтийг —
    * өөрөөр хэлбэл dashboard-ын users, transactions, assets... бүгдийг —
    * устгах SQL үүсгэнэ. `site_*`-аар хязгаарласнаар зөвхөн вэбсайтын
