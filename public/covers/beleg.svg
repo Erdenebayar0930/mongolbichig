@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Бэлэг дурсгал">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#3c2d1b"/>
+      <stop offset="1" stop-color="#140d07"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect x="24" y="24" width="752" height="452" fill="none" stroke="#c9a748" stroke-opacity="0.4"/>
+  <g fill="none" stroke="#c9a748" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round">
+    <path d="M52 78V52h26M748 78V52h-26M52 422v26h26M748 422v26h-26"/>
+  </g>
+
+  <!-- Улзий хээний хялбаршуулсан хувилбар -->
+  <g fill="none" stroke="#ecd68d" stroke-opacity="0.85" stroke-width="9" stroke-linejoin="round">
+    <path d="M340 200h60v-60h60v60h60v60h-60v60h-60v-60h-60z"/>
+    <path d="M370 170h120v160H370z" stroke-opacity="0.35" stroke-width="3"/>
+  </g>
+  <g fill="none" stroke="#c9a748" stroke-opacity="0.5" stroke-width="2">
+    <circle cx="430" cy="250" r="130"/>
+  </g>
+  <text x="400" y="452" text-anchor="middle" fill="#c9a748" fill-opacity="0.62"
+        font-family="Georgia, serif" font-size="17" letter-spacing="7">БЭЛЭГ ДУРСГАЛ</text>
+</svg>

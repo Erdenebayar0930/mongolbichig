@@ -1,0 +1,37 @@
+Bolorsoft монгол бичгийн фонтууд
+================================
+
+  Classical Mongolian Dashitseden   cmdashitseden.woff2    (v5.91)
+  MongolianScript                   MongolianScript.woff2  (v5.91)
+  Mongolian System                  MongolianSystem.woff2  (v0.98)
+
+Зохиогч   : T.Jamyansuren
+Эрхийн эзэн: Bolorsoft LLC — Copyright (c) 2019. All rights reserved.
+Барааны тэмдэг: дээрх нэрс нь Bolorsoft LLC-ийн барааны тэмдэг.
+
+ЛИЦЕНЗ (фонтын `name` хүснэгтийн 13-р бичлэгээс үгчлэн):
+
+    "Bolorsoft free font. This font may be downloaded, distributed and
+     used free of charge for both personal and commercial use.
+     Any other use is prohibited."
+
+    https://fonts.bolorsoft.com/license
+
+Өөрөөр хэлбэл татах, ТҮГЭЭХ, худалдааны зорилгоор ашиглах нь зөвшөөрөгдсөн
+тул эдгээрийг өөрсдөө хостлох (self-host) эрхтэй. Харин фонтыг ЗАСВАРЛАХ,
+дахин нэрлэх, эсвэл фонт өөрөө бүтээгдэхүүн болгон зарах нь "any other use"
+дор орж, хориотой.
+
+ЭХ СУРВАЛЖ
+
+Оригиналыг https://fonts.bolorsoft.com/web/ доороос TTF хэлбэрээр татсан:
+  cmdashitseden.ttf · MongolianScript.ttf · MongolianSystem.ttf
+Эндхийн .woff2 файлууд нь тэдгээрийн ЗӨВХӨН савлагааг сольсон хувилбар —
+глиф, cmap, GSUB/GPOS/GDEF бүрэн хэвээр, subset хийгээгүй (нийт 757 KB ->
+242 KB). Гуужуулаагүй шалтгаан нь эдгээр фонт 0xE2xx муж дахь PUA кодыг
+өргөн ашигладаг: Bolorsoft-ын хөрвүүлэгчийн гаргац PUA-гаар ирдэг тул
+subset хийвэл чимээгүйхэн эвдэрнэ.
+
+Дахин үүсгэх:
+    pip install fonttools brotli
+    python -c "from fontTools.ttLib import TTFont; f=TTFont('X.ttf'); f.flavor='woff2'; f.save('X.woff2')"

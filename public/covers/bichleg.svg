@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Уран бичлэг">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#3c2d1b"/>
+      <stop offset="1" stop-color="#140d07"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect x="24" y="24" width="752" height="452" fill="none" stroke="#c9a748" stroke-opacity="0.4"/>
+  <g fill="none" stroke="#c9a748" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round">
+    <path d="M52 78V52h26M748 78V52h-26M52 422v26h26M748 422v26h-26"/>
+  </g>
+
+  <!-- Өлгөөтэй дэвтэр: босоо бичгийн нэг багана -->
+  <rect x="330" y="80" width="140" height="330" fill="#13100b" stroke="#c9a748" stroke-opacity="0.5"/>
+  <g fill="#ecd68d" fill-opacity="0.9">
+    <path d="M398 120c3 0 5 2 5 4v230c0 12-2 21-6 28-2 4-5 3-4-1 2-8 3-17 3-27V124c0-2 2-4 5-4z"/>
+    <path d="M396 168c-14-1-24-6-31-14-2-3-1-5 2-4 8 3 18 5 29 6zM396 226c-14-1-24-6-31-14-2-3-1-5 2-4 8 3 18 5 29 6zM396 284c-14-1-24-6-31-14-2-3-1-5 2-4 8 3 18 5 29 6z"/>
+    <path d="M404 344c10 10 20 17 30 20 4 1 4 4 0 5-14 2-25-4-34-17z"/>
+  </g>
+  <text x="400" y="452" text-anchor="middle" fill="#c9a748" fill-opacity="0.62"
+        font-family="Georgia, serif" font-size="17" letter-spacing="7">УРАН БИЧЛЭГ</text>
+</svg>

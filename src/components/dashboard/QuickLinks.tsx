@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-import { useUser } from "@/app/(auth)/UserProvider";
+import { useUser } from "@/app/(udirdlaga)/(auth)/UserProvider";
 import { canSeeNavItem, shortcuts } from "@/layout/navigation";
 
 /**

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10" width="20" height="10">
+  <!--
+    Алхан хээний нэг давталт. Өргөн нь яг 20 нэгж — `repeat-x` хийхэд эвлэл
+    нь мэдэгдэхгүйн тулд хээ бүхэлдээ хайрцаг дотроо багтаж, зөвхөн доод
+    шугам нь ирмэгээс ирмэг хүрнэ.
+  -->
+  <g fill="none" stroke="#c9a748" stroke-width="0.9" stroke-linecap="square">
+    <path d="M0 9.5h20"/>
+    <path d="M3 9.5V2.5h11V6H7.5v3.5"/>
+  </g>
+</svg>

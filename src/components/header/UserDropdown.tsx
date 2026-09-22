@@ -4,7 +4,7 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { signOutCompletely } from "@/lib/session";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/app/(auth)/UserProvider";
+import { useUser } from "@/app/(udirdlaga)/(auth)/UserProvider";
 
 
 export default function UserDropdown() {

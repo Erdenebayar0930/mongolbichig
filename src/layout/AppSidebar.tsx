@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, ChevronDown, LogOut, Settings } from "lucide-react";
 
 import { useSidebar } from "../context/SidebarContext";
-import { useUser } from "@/app/(auth)/UserProvider";
+import { useUser } from "@/app/(udirdlaga)/(auth)/UserProvider";
 import { signOutCompletely } from "@/lib/session";
 import { canSeeNavItem, navItems } from "./navigation";
 
@@ -56,7 +56,7 @@ const AppSidebar: React.FC = () => {
         }`}
       >
         {/* Шилжих бүрд цэсийг хаана — утсан дээр цэс агуулгыг бүтэн халхалдаг */}
-        <Link href="/" onClick={closeMobileSidebar} className="flex items-center gap-3">
+        <Link href="/udirdlaga" onClick={closeMobileSidebar} className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-600">
             <BarChart3 className="h-5 w-5 text-white" strokeWidth={2.5} />
           </span>

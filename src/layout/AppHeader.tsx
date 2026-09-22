@@ -44,7 +44,7 @@ const AppHeader: React.FC = () => {
             <ol className="flex items-center gap-1.5 text-sm">
               <li>
                 <Link
-                  href="/"
+                  href="/udirdlaga"
                   className="text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
                 >
                   Бид туслая

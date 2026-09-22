@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { updateProfile } from "firebase/auth";
 import ImageCropModal from "@/components/common/ImageCropModal";
 
-import { useUser } from "@/app/(auth)/UserProvider";
+import { useUser } from "@/app/(udirdlaga)/(auth)/UserProvider";
 import { auth } from "@/lib/firebase";
 import { asRole, roleLabels } from "@/lib/permissions";
 import {

@@ -39,8 +39,8 @@ export type NavItem = {
  * дараалал нь UI-д ямар эрэмбээр гарахыг тодорхойлдог.
  */
 export const navItems: NavItem[] = [
-  { name: "Үндсэн цэс", path: "/", icon: LayoutGrid },
-  { name: "Мэдэгдэл илгээх", path: "/admin/notifications", icon: Bell, adminOnly: true },
+  { name: "Үндсэн цэс", path: "/udirdlaga", icon: LayoutGrid },
+  { name: "Мэдэгдэл илгээх", path: "/ui/notifications", icon: Bell, adminOnly: true },
   { name: "Хэрэглэгчид", path: "/users", icon: Users, adminOnly: true },
   {
     name: "Нөөцлөлт",

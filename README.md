@@ -77,6 +77,39 @@ git clone https://github.com/Erdenebayar0930/bid_tuslay.git
 - Admin actions can send FCM notifications through the /api/notifications/send route.
 - User profiles, roles, statuses, and FCM tokens are stored in MySQL.
 
+## Хоёр гадаргуу, нэг апп
+
+Энэ репо **хоёр бүтээгдэхүүнийг нэг Next.js апп**-аар үйлчилдэг. Тэдгээр нь
+route group-аар тусгаарлагдсан бөгөөд тус бүр **өөрийн root layout, өөрийн
+CSS, өөрийн өгөгдлийн сан, өөрийн нэвтрэлттэй**.
+
+| | Уран бичлэг | Бид туслая |
+| --- | --- | --- |
+| Бүлэг | `src/app/(site)/` | `src/app/(udirdlaga)/` |
+| URL | `/`, `/surgalt`, `/delguur`, `/medee`, `/toli`, `/ner`, `/horvuulegch`, `/haih`, `/sags`, `/tuhai`, `/zahialga`, `/admin/*` | `/udirdlaga`, `/inventory`, `/users`, `/reports`, `/documents`, `/backup`, `/ai-analysis`, `/settings`, `/profile`, `/notifications`, `/login`, `/ui/*` |
+| Өгөгдлийн сан | **Postgres** — `SITE_DATABASE_URL` | **MySQL** — `DATABASE_URL` |
+| Схем | `src/lib/site/db/schema.ts` (`site_*`) | `src/lib/db/schema.ts` |
+| Drizzle | `drizzle.site.config.ts` · `npm run site:db:push` | `drizzle.config.ts` · `npm run db:push` |
+| Нэвтрэлт | Нэг нууц үг + HMAC cookie | Firebase Auth + үүрэг |
+| Код | `src/lib/site/`, `src/components/site/` | `src/lib/`, `src/components/`, `src/layout/` |
+
+**Хоёр өгөгдлийн сан ЗОРИУДААР үлдсэн.** MySQL-ийг Postgres руу шилжүүлэх нь
+нэгтгэлийн ажлын дийлэнх, эрсдэлийн бүхнийг эзлэх байсан бөгөөд ямар ч ашиг
+өгөхгүй — хоёр бүтээгдэхүүн нэг ч хүснэгт хуваалцдаггүй. Нэг апп хоёр
+клиентийг зэрэг барих нь асуудалгүй.
+
+**Хоёр root layout.** `src/app/layout.tsx` БАЙХГҮЙ — Next нь бүлэг тус бүрийн
+`layout.tsx`-ыг root layout болгож үзнэ ([баримт](https://nextjs.org/docs/app/api-reference/file-conventions/layout)).
+Тиймээс `<html>`, `<body>` тэмдэг хоёуланд нь бий. Хоёр гадаргуу хооронд
+шилжихэд **бүтэн хуудас ачаална** — өөр өнгө, өөр фонт, өөр хэрэглэгчтэй тул
+энэ нь зөв зан үйл.
+
+⚠ `src/app/(site)/globals.css` ба `src/app/(udirdlaga)/globals.css` хоёрыг
+**нэгтгэж болохгүй**. Удирдлагынх нь `@theme` дотор `--font-*: initial`,
+`--breakpoint-*: initial` гэж Tailwind-ийн үндсэн утгыг УСТГАДАГ бөгөөд тэр нь
+сайтын хэвд халдана. Бүлэг тус бүр өөрийнхөө CSS-ийг импортолж, тусдаа багц
+болж гардаг.
+
 ## Deployment
 
 Байршуулалтын одоогийн бодит тохиргоо болон скриптүүдийг

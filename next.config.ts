@@ -217,6 +217,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // `sharp` нь нэйтив хоёрлог тул багцлах боломжгүй — уран бичлэгийн зураг
+  // зурагч (src/lib/site/mongolPoster.ts) үүнийг сервер талд шууд дуудна.
+  serverExternalPackages: ["sharp"],
   async headers() {
     return [
       {
@@ -247,7 +250,12 @@ const nextConfig: NextConfig = {
         // API хариултыг хаана ч кэшлэхгүй: CDN, прокси, хөтчийн буцах товч.
         // Эдгээр нь хэрэглэгчийн эрхээр шүүгдсэн хувийн өгөгдөл тул нэг
         // төхөөрөмж дээр ээлжлэн нэвтэрсэн хоёр хүний хооронд урсаж болохгүй.
-        source: "/api/:path*",
+        // ⚠ Уран бичлэгийн НИЙТИЙН хоёр хаягийг ЭНД ОРУУЛАХГҮЙ: `toli` нь
+        // 52 мянган толгой үгтэй, бараг өөрчлөгддөггүй толь, `bichig` нь нэг
+        // зураг бүрд хэдэн зуун миллисекунд зарцуулдаг. Хоёулаа хэрэглэгчийн
+        // хувийн өгөгдөлгүй тул кэшлэх нь аюулгүй бөгөөд заавал хэрэгтэй —
+        // маршрутууд өөрсдөө Cache-Control-оо тавьдаг.
+        source: "/api/((?!toli$|toli/|bichig$|bichig/).*)",
         headers: [
           { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
           { key: "Pragma", value: "no-cache" },

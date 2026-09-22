@@ -16,7 +16,15 @@
     "pwa:icons": "node scripts/generate-pwa-icons.mjs",
     "migrate:firestore": "tsx --env-file=.env.local scripts/migrate-firestore-to-mysql.ts",
     "grant:role": "tsx --env-file=.env.local scripts/grant-role.ts",
-    "sync:claims": "tsx --env-file=.env.local scripts/sync-claims.ts"
+    "sync:claims": "tsx --env-file=.env.local scripts/sync-claims.ts",
+    "site:db:generate": "drizzle-kit generate --config drizzle.site.config.ts",
+    "site:db:push": "drizzle-kit push --config drizzle.site.config.ts",
+    "site:db:seed": "tsx --env-file=.env.local scripts/site/seed.ts",
+    "site:rules": "tsx scripts/site/measure-rules.mts",
+    "site:toli:index": "python scripts/site/fetch-mongoltoli.py index",
+    "site:toli:fetch": "python scripts/site/fetch-mongoltoli.py detail --limit 150000",
+    "site:toli:import": "tsx --env-file=.env.local scripts/site/import-toli.ts",
+    "site:brand": "node scripts/site/generate-brand-assets.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
@@ -39,18 +47,21 @@
     "mysql2": "^3.23.3",
     "next": "^16.3.1",
     "next-pwa": "^5.6.0",
+    "pg": "^8.22.0",
     "react": "^19.2.0",
     "react-apexcharts": "^1.8.0",
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "react-easy-crop": "^6.2.3",
     "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@svgr/webpack": "^8.1.0",
     "@types/node": "^20.19.25",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "@types/react-transition-group": "^4.4.12",

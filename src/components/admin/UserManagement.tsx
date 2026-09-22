@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Crown, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 
-import { useUser } from "@/app/(auth)/UserProvider";
+import { useUser } from "@/app/(udirdlaga)/(auth)/UserProvider";
 import ExportButton from "@/components/common/ExportButton";
 import { auth } from "@/lib/firebase";
 import {

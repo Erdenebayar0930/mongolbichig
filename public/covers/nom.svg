@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Ном">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#3c2d1b"/>
+      <stop offset="1" stop-color="#140d07"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect x="24" y="24" width="752" height="452" fill="none" stroke="#c9a748" stroke-opacity="0.4"/>
+  <g fill="none" stroke="#c9a748" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round">
+    <path d="M52 78V52h26M748 78V52h-26M52 422v26h26M748 422v26h-26"/>
+  </g>
+
+  <!-- Дэлгээстэй ном -->
+  <path d="M400 150c-40-24-90-30-140-20v230c50-10 100-4 140 20 40-24 90-30 140-20V130c-50-10-100-4-140 20z"
+        fill="#13100b" stroke="#c9a748" stroke-opacity="0.55" stroke-width="2"/>
+  <path d="M400 150v230" stroke="#c9a748" stroke-opacity="0.55" stroke-width="2"/>
+  <g stroke="#c9a748" stroke-opacity="0.35" stroke-width="2" fill="none">
+    <path d="M296 190h76M296 224h76M296 258h60M428 190h76M428 224h76M428 258h60"/>
+  </g>
+  <text x="400" y="452" text-anchor="middle" fill="#c9a748" fill-opacity="0.62"
+        font-family="Georgia, serif" font-size="17" letter-spacing="7">НОМ</text>
+</svg>

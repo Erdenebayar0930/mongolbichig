@@ -1,0 +1,580 @@
+@import "tailwindcss";
+
+/* Нэгтгэсэн апп-д `.next/` нь репогийн үндэст, .gitignore-д бүртгэлтэй тул
+   Tailwind түүнийг өөрөө алгасна — өмнөх @source ялгаварлалт хэрэггүй болов.
+   (Тусдаа `website/` репод байхад эцэг репогийн /website/ ignore дүрэм дотоод
+   ignore-ыг идэвхгүй болгодог байсан тул шаардлагатай байв.) */
+
+@custom-variant dark (&:is(.dark *));
+
+/* --- Босоо монгол бичгийн фонт ---------------------------------------------
+   Bolorsoft-ын гурван фонт, өөрсдөө хостолсон (public/fonts/mongol/).
+   Лиценз нь татах, түгээх, худалдааны хэрэглээг зөвшөөрдөг — дэлгэрэнгүйг
+   тэр хавтас доторх LICENSE.txt-ээс үз.
+
+   Эдгээрийг next/font-оор биш, ГАРААР зарлаж байгаа шалтгаан: next/font нь
+   зөвхөн Google Fonts болон локал файлыг `localFont()`-оор авдаг ба сүүлийнх
+   нь фонт бүрийг өөрийн CSS хувьсагчтай болгож layout.tsx-ийг хавдуулна.
+   Гурван фонт нэг л зорилгод (`.mongol`) үйлчилдэг тул энд нэг дор байх нь
+   ойлгомжтой.
+
+   `font-display: swap` — фонт ирэх хүртэл кирилл fallback-аар харагдана.
+   Монгол бичигт fallback бараг тустай биш ч swap нь layout-ыг блоклохгүй.
+
+   ⚠ subset ХИЙГЭЭГҮЙ. Эдгээр фонт 0xE2xx PUA мужийг өргөн ашигладаг
+   (Bolorsoft-ын хөрвүүлэгчийн гаргац PUA-гаар ирдэг) тул unicode-range
+   заах буюу гуужуулах нь бичвэрийг чимээгүйхэн эвдэнэ. */
+@font-face {
+  font-family: "Classical Mongolian Dashitseden";
+  src: url("/fonts/mongol/cmdashitseden.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MongolianScript";
+  src: url("/fonts/mongol/MongolianScript.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mongolian System";
+  src: url("/fonts/mongol/MongolianSystem.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* --- Бэх: хар (brand) -----------------------------------------------
+     Логоны дэвсгэр бол хар, бичээс нь гуулин алт, дээр нь галын улаан.
+     Тиймээс үндсэн өнгө нь хөх биш, дулаан хар — цэвэр #000 биш, хүрэн
+     туяатай: цэвэр хар дэлгэцэн дээр хатуу, нүд ядраадаг бол хүрэн туяа нь
+     гэрийн дотоод, модон ширээ, бэхний өнгийг сануулна. Цайвар талын өнгүүд
+     нь мөн энэ дулаан тэнхлэг дээр сууна — тиймээс саарал биш, шаргал. */
+  --color-brand-50: #faf5ec;
+  --color-brand-100: #f2e8d6;
+  --color-brand-200: #e2d2b4;
+  --color-brand-300: #c9b287;
+  --color-brand-400: #a68d63;
+  --color-brand-500: #816b48;
+  --color-brand-600: #5f4d33;
+  --color-brand-700: #453724;
+  --color-brand-800: #2e2417;
+  --color-brand-900: #1c150d;
+  --color-brand-950: #0e0a06;
+
+  /* --- Бэх: харанхуй горимын ёроол ------------------------------------
+     Хөхөөс гүн бөгөөд бага ханасан тул хөх гадаргуунууд түүн дээр «хөвж»
+     харагдана. Бүгдийг brand-950 болговол карт ба хуудас ялгарахгүй, нэг
+     хөх шөл мэт болно. */
+  --color-ink-950: #0a0705;
+  --color-ink-900: #13100b;
+  --color-ink-800: #1d1811;
+  --color-ink-700: #2a231a;
+
+  /* --- Алт: логоны гуулин ---------------------------------------------
+     Логоны бичээс шар биш, гуулин — гэрэлд ногоовтор, сүүдэрт хүрэл татна.
+     Хар дэвсгэр дээр гялалзахын тулд өмнөхөөс арай тодруулав. */
+  --color-gold-100: #fbf4de;
+  --color-gold-200: #f5e7b7;
+  --color-gold-300: #ecd68d;
+  --color-gold-400: #dcbe66;
+  --color-gold-500: #c9a748;
+  --color-gold-600: #a5842f;
+  --color-gold-700: #806526;
+
+  /* --- Улаан: гал ба тамга --------------------------------------------
+     Логон дээр улаан хоёр л газар гарна: дээд талын гал, доод талын тамга.
+     Сайт ч мөн адил — улаан бол «анхаар» гэсэн дохио биш, гарын үсэг.
+     Тиймээс шатаж буй гал шиг тод улаан, харин маш ховор. */
+  --color-seal-400: #e2564a;
+  --color-seal-500: #d42a1e;
+  --color-seal-600: #b31f16;
+  --color-seal-700: #8e1810;
+
+  /* --- Цаас — постерын цөцгий өнгө, цэвэр цагаанаас дулаан ------------ */
+  --color-ivory-50: #faf5ea;
+  --color-ivory-100: #f2e7d3;
+  --color-ivory-200: #e5d5b8;
+
+  --font-sans:
+    var(--font-site), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-serif: var(--font-display), "PT Serif", Georgia, serif;
+  /* Босоо монгол бичиг. Фонт байхгүй бол ямар ч fallback туслахгүй тул
+     `.mongol` класс нь фонтын хамт л утгатай.
+
+     ⚠ ЭХЭНД NOTO БАЙХ ЁСТОЙ — гоо сайхны биш, ЗӨВ БИЧЛЭГИЙН шаардлага.
+
+     Монгол бичигт ᠭ ба ᠬ үсэг эр (γ, q) ба эм (g, k) хоёр өөр дүрстэй бөгөөд
+     аль нь болохыг ДАРААХ ЭГШИГ шийднэ. Unicode-д хоёулаа нэг код (U+182D,
+     U+182C) тул энэ ялгааг фонт өөрөө OpenType контекст дүрмээр гаргах ёстой.
+
+     Bolorsoft-ын гурван фонт (доор) үүнийг ХИЙДЭГГҮЙ: тэдгээрийн контекст
+     дүрмүүд нь Bolorsoft-ын өөрсдийн PUA кодчлол (U+E2xx) дээр бичигдсэн, мөн
+     ᠭ-д `init` хэлбэр огт байхгүй. Тиймээс Unicode бичвэрт ᠭᠡᠷ ба ᠭᠠᠷ яг ижил
+     дүрсээр буудаг — «гэр» нь «гар» болж уншигдана.
+
+     Noto Sans Mongolian-д ижил шалгалт хийхэд: дөрвөн холболтын хэлбэр бүрэн,
+     контекст дүрэм 562, тэдгээрийн 130 нь ᠭ-г хөндөнө. Тиймээс энэ нь эр/эм
+     ялгааг зөв гаргана. (Шалгах арга: woff2-ын GSUB-ыг задлаад `calt`/`rclt`
+     дүрмүүд Unicode код дээр ажиллаж байгаа эсэхийг хар.)
+
+     Bolorsoft-ын нүүрүүд `.mongol-dashitseden` / `.mongol-script` /
+     `.mongol-system` засварлагчаар хэвээр байна — гарчиг, тамга мэт БИЧВЭР
+     БУС чимэглэлд тэдгээр нь илүү үзэсгэлэнтэй. Харин уншигдах ёстой газарт
+     (хөрвүүлэгчийн гаралт, /ner дээрх нэр) тэднийг бүү хэрэглэ.
+
+     `/ner` хуудасны зотон нь `.mongol`-ын тооцоолсон font-family-г уншаад
+     «Бийр» хэвээр үсгийг 18 удаа давхарлан зурдаг тул энэ жагсаалтыг
+     өөрчлөхдөө /ner-ийг ЗААВАЛ нүдээр шалга. */
+  --font-mongol:
+    var(--font-mongol-script), "Noto Sans Mongolian", "Mongolian Baiti",
+    "Classical Mongolian Dashitseden", serif;
+
+  --shadow-card: 0 1px 1px rgb(14 10 6 / 0.05), 0 12px 32px -20px rgb(14 10 6 / 0.38);
+  --shadow-card-hover: 0 2px 3px rgb(14 10 6 / 0.07), 0 26px 56px -24px rgb(14 10 6 / 0.48);
+  --shadow-gold: 0 0 0 1px rgb(201 167 72 / 0.35), 0 18px 40px -24px rgb(201 167 72 / 0.5);
+
+  --radius-lux: 2px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  /* Гадаргуугийн шат: хуудасны ёроол хамгийн гүн, карт нэг шат дээш,
+     өргөгдсөн зүйл бүр нэгээр дээш. Ингэж байж элемент бүр хүрээгүйгээр ч
+     тусдаа биет мэт уншигдана. */
+  :root {
+    --surface: #fffdf8;
+    /* Уусах градиентад зориулав. `transparent` руу шууд уусгавал зарим хөтөч
+       дундуур нь саарал туйван гаргадаг тул тухайн гадаргуугийн өнгийг
+       тунгалаг болгосон хувилбарыг зэрэгцүүлж хадгална. */
+    --surface-0: rgb(255 253 248 / 0);
+    --surface-2: var(--color-ivory-100);
+    --line: rgb(28 21 13 / 0.16);
+    --line-soft: rgb(28 21 13 / 0.08);
+    /* Гар бичмэлийн уламжлалаар эхний үсэг улаан — логоны улаантай нэг */
+    --dropcap: var(--color-seal-600);
+  }
+
+  .dark {
+    --surface: var(--color-ink-900);
+    --surface-0: rgb(19 16 11 / 0);
+    --surface-2: var(--color-ink-800);
+    --line: rgb(255 255 255 / 0.09);
+    --line-soft: rgb(255 255 255 / 0.05);
+    --dropcap: var(--color-gold-400);
+  }
+
+  body {
+    @apply bg-ivory-50 text-brand-950 antialiased dark:bg-ink-950 dark:text-ivory-100;
+    /* Маш нарийн ширхэгтэй цаасан бүтэц — өнгө хавтгай харагдахаас сэргийлнэ */
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgb(28 21 13 / 0.042) 1px,
+      transparent 0
+    );
+    background-size: 22px 22px;
+  }
+
+  .dark body {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgb(255 255 255 / 0.03) 1px,
+      transparent 0
+    );
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    @apply bg-gold-500 text-brand-950;
+  }
+
+  :focus-visible {
+    @apply outline-1 outline-offset-4 outline-gold-500;
+  }
+}
+
+@layer components {
+  /* --- Гадаргуу ------------------------------------------------------- */
+
+  .surface {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  .surface-raised {
+    background-color: var(--surface-2);
+    border: 1px solid var(--line);
+  }
+
+  .fade-surface-l {
+    background: linear-gradient(to left, var(--surface), var(--surface-0));
+  }
+
+  .hairline {
+    border-color: var(--line);
+  }
+
+  .hairline-soft {
+    border-color: var(--line-soft);
+  }
+
+  /* --- Чимэглэл ------------------------------------------------------- */
+
+  /** Дээд талын жижиг шошго — тансаг сэтгүүлийн "eyebrow" */
+  .eyebrow {
+    @apply text-[0.6875rem] font-semibold uppercase tracking-[0.3em];
+  }
+
+  /** Алтан үс шиг нимгэн зураас — хоёр үзүүр рүүгээ уусна */
+  .rule-gold {
+    @apply h-px w-full border-0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-gold-500),
+      transparent
+    );
+    opacity: 0.55;
+  }
+
+  /** Хоёр талдаа зураастай очир — блокийн төвлөрсөн тусгаарлагч */
+  .ornament {
+    @apply flex items-center justify-center gap-3 text-gold-500;
+  }
+
+  .ornament::before,
+  .ornament::after {
+    content: "";
+    @apply h-px w-12;
+    background: linear-gradient(to right, transparent, var(--color-gold-500));
+  }
+
+  .ornament::after {
+    background: linear-gradient(to left, transparent, var(--color-gold-500));
+  }
+
+  /** Зурган дээрх алтан хүрээ — 1px, дотогшоо */
+  .frame-gold {
+    box-shadow: inset 0 0 0 1px rgb(201 167 72 / 0.45);
+  }
+
+  /** Дөрвөн булангийн хаалт — уламжлалт хүрээний өнцөг. Бүтэн хүрээ зурган
+      дээр хатуу хайрцаг үүсгэдэг бол булан нь зөвхөн «энэ бол хүрээтэй
+      бүтээл» гэдгийг сануулаад чимээгүй болно. */
+  .frame-khee {
+    --khee-line: rgb(201 167 72 / 0.62);
+    --khee-len: 15px;
+    background-image: linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line)),
+      linear-gradient(var(--khee-line), var(--khee-line));
+    background-repeat: no-repeat;
+    background-size: var(--khee-len) 1px, 1px var(--khee-len),
+      var(--khee-len) 1px, 1px var(--khee-len), var(--khee-len) 1px,
+      1px var(--khee-len), var(--khee-len) 1px, 1px var(--khee-len);
+    background-position: left top, left top, right top, right top, left bottom,
+      left bottom, right bottom, right bottom;
+  }
+
+  /** Алхан хээний зурвас — тугны доод ирмэг, хөлийн эхэнд. Өндөр нь 10px:
+      үүнээс зузаан бол хээ гоёл байхаа больж, хашлага болно. */
+  .khee-band {
+    height: 10px;
+    background-image: url("/brand/alkhan-band.svg");
+    background-repeat: repeat-x;
+    background-position: center;
+    background-size: auto 10px;
+    opacity: 0.42;
+  }
+
+  /** Тамга — цаасан дээр дарсан мэт. Цайвар горимд `multiply` нь зандан
+      улааныг цаасны өнгөнд шингээнэ; харанхуйд нөгөө талаараа бүрэн бүдгэрч
+      алга болдог тул тэнд энгийн давхаргаар үлдээв. */
+  .tamga {
+    mix-blend-mode: multiply;
+  }
+
+  .dark .tamga {
+    mix-blend-mode: normal;
+    opacity: 0.92;
+  }
+
+  /**
+   * Босоо бичгийн нуруу. Уламжлалт бичээс баганынхаа дагуу татсан нарийн
+   * шугамтай байдаг — тэрхүү тэнхлэгийг сануулна. `.mongol` элемент өөрөө
+   * бичих чиглэлээ сольдог тул шугамыг гаднах хайрцагт нь татав.
+   */
+  .mongol-spine {
+    position: relative;
+    padding-right: 0.9rem;
+  }
+
+  .mongol-spine::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--color-gold-500),
+      transparent
+    );
+    opacity: 0.5;
+  }
+
+  /** Нуруу зүүн талдаа — гарчгийн баруун гар талд зогсох баганад. Хоёр
+      багана хоёулаа дотогшоо харсан нуруутай бол гарчиг хоёрын дунд
+      орших мэт уншигдана. */
+  .mongol-spine-l {
+    position: relative;
+    padding-left: 0.9rem;
+  }
+
+  .mongol-spine-l::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--color-gold-500),
+      transparent
+    );
+    opacity: 0.5;
+  }
+
+  /**
+   * Босоо монгол бичиг. Уламжлалт бичиг дээрээс доош, баганаас баруун тийш
+   * бичигддэг — `vertical-lr` яг тэр урсгалыг өгнө. Зөвхөн чимэглэлд
+   * хэрэглэнэ: дэлгэц уншигчид энэ бичвэрийг кирилл хувилбартай нь давхар
+   * уншуулах шаардлагагүй тул дуудсан газартаа `aria-hidden` тавина.
+   */
+  .mongol {
+    font-family: var(--font-mongol);
+    writing-mode: vertical-lr;
+    text-orientation: sideways;
+    line-height: 1.35;
+  }
+
+  /**
+   * Нүүр солих засварлагч — `.mongol`-ын ХАЖУУД тавина, оронд нь биш:
+   *   <span class="mongol mongol-script">ᠨᠡᠷᠡ</span>
+   *
+   * Гурван нүүрийн ялгаа:
+   *   dashitseden — сонгодог, зузаан нимгэний хэлбэлзэлтэй. Үндсэн сонголт.
+   *   script      — хамгийн бүдүүн, өндөр ялгаралтай. Богино гарчигт хүчтэй;
+   *                 урт бичвэрт хүнд, `/ner`-ийн бийрийн хэвтэй зохицохгүй.
+   *   system      — жигд зузаантай, техникийн. Жижиг тайлбар, шошгонд.
+   *
+   * Гурвуулаа `--font-mongol`-той ижил fallback гинжийг давтана: засварлагч
+   * зөвхөн ЭХНИЙ гишүүнийг л сольж, фонт ачаалагдаагүй тохиолдолд `.mongol`
+   * ямар байсан тэр хэвээрээ уначихгүй байх ёстой.
+   */
+  /* ⚠ Гурван Bolorsoft нүүр эр/эм ялгааг гаргадаггүй (`--font-mongol`-ын
+     тайлбарыг үз). Зөвхөн чимэглэлд — уншигдах бичвэрт БҮҮ хэрэглэ. */
+  .mongol-dashitseden {
+    font-family:
+      "Classical Mongolian Dashitseden", var(--font-mongol-script),
+      "Mongolian Baiti", serif;
+  }
+
+  .mongol-script {
+    font-family:
+      "MongolianScript", var(--font-mongol-script), "Mongolian Baiti", serif;
+  }
+
+  .mongol-system {
+    font-family:
+      "Mongolian System", var(--font-mongol-script), "Mongolian Baiti", serif;
+  }
+
+  /* --- Товч ----------------------------------------------------------- */
+
+  /** Алтан товч — дүүргэлтгүй, зөвхөн хүрээ, hover дээр дүүрнэ */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 border border-gold-500/70 px-7 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-gold-700 transition duration-300 hover:bg-gold-500 hover:text-brand-950 disabled:pointer-events-none disabled:opacity-50 dark:text-gold-300 dark:hover:text-brand-950;
+  }
+
+  /** Гол үйлдэл — дүүрэн алт. Хуудсанд нэгээс илүүгүй байх ёстой. */
+  .btn-solid {
+    @apply inline-flex items-center justify-center gap-2 border border-gold-500 bg-gold-500 px-7 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-brand-950 transition duration-300 hover:bg-gold-400 hover:border-gold-400 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /** Хоёрдогч — саарал хүрээтэй */
+  .btn-quiet {
+    @apply inline-flex items-center justify-center gap-2 border px-5 py-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-900/75 transition duration-300 hover:border-gold-500/60 hover:text-gold-700 disabled:pointer-events-none disabled:opacity-50 dark:text-ivory-100/70 dark:hover:text-gold-300;
+    border-color: var(--line);
+  }
+
+  /* --- Маягт ---------------------------------------------------------- */
+
+  /**
+   * Захиалга, бүртгэл, админ — сайт даяар маягт олон. Хэрэв класс бүрийг
+   * газар газар давтвал нэг өдөр л ялгаатай харагдаж эхэлнэ.
+   */
+  .field {
+    @apply block w-full border bg-transparent px-4 py-3 text-[0.92rem] text-brand-950 transition-colors duration-300 placeholder:text-brand-900/35 focus:border-gold-500 focus:outline-none dark:text-ivory-50 dark:placeholder:text-ivory-100/30;
+    border-color: var(--line);
+  }
+
+  .field-label {
+    @apply mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-brand-900/62 dark:text-ivory-100/58;
+  }
+
+  .field-error {
+    @apply mt-2 block text-[0.78rem] text-seal-600 dark:text-seal-400;
+  }
+
+  /** Шошго — түвшин, төлөв, ангилал */
+  .chip {
+    @apply inline-flex items-center border px-2.5 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.16em];
+  }
+
+  /* --- Мэдээллийн бөмбөлөг ------------------------------------------- */
+
+  /**
+   * Зарын хуудасны хэв маяг: бараан дугуй булантай талбай, дотор нь алтан
+   * дүрс, хажууд нь «нэр → утга» хос. Сайтын бусад хэсэг өнцөгтэй байхад
+   * эдгээр л дугуйлагдана — тиймээс мэдээлэл нь чимэглэлээс тодорхой
+   * ялгарч, нүд эхлээд эдгээр рүү очно.
+   */
+  .pill {
+    @apply flex items-center gap-3.5 rounded-2xl px-4 py-3;
+    background-color: var(--color-brand-950);
+  }
+
+  .dark .pill {
+    background-color: var(--color-ink-800);
+  }
+
+  .pill-label {
+    @apply text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-gold-400/85;
+  }
+
+  .pill-value {
+    @apply mt-0.5 text-[0.92rem] font-semibold leading-snug text-ivory-50;
+  }
+
+  /** Цайвар хувилбар — карт дотор. Бараан бөмбөлөг картыг хүндрүүлнэ. */
+  .pill-soft {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5;
+    background-color: var(--surface-2);
+  }
+
+  .pill-icon {
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-xl text-gold-400;
+    background-color: rgb(201 167 72 / 0.16);
+  }
+
+  .pill-soft .pill-icon {
+    @apply h-8 w-8 rounded-lg text-gold-600 dark:text-gold-400;
+    background-color: rgb(201 167 72 / 0.18);
+  }
+
+  /* --- Бичвэр --------------------------------------------------------- */
+
+  /**
+   * Дэлгэрэнгүй хуудасны биет. Хайрцгийн бүтэн өргөнд мөр бүр ~81 тэмдэгт
+   * болж, нүд мөр солихдоо эхлэлээ олохгүй төөрдөг. ~68 тэмдэгт нь уншихад
+   * хамгийн тохиромжтой тул бичвэрийг нарийсгав.
+   */
+  .prose-site {
+    max-width: 38rem;
+    margin-inline: auto;
+  }
+
+  .prose-site p {
+    @apply mb-6 text-[1.09rem] leading-[1.95] text-brand-900/88 dark:text-ivory-100/80;
+  }
+
+  /**
+   * Эхний догол мөрийн эхний үсэг — сэтгүүлийн уламжлал. Өнгийг `dark:`-аар
+   * өгч болохгүй: тэр хувилбар нь сонгогчийн ард `:is(.dark *)` залгадаг тул
+   * хуурмаг элемент дунд үлдэж, дүрэм бүхэлдээ хүчингүй болно. Тиймээс
+   * горимоор солигддог токен ашиглав.
+   */
+  .prose-site > p:first-of-type::first-letter {
+    @apply float-left mr-3 mt-1 font-serif text-6xl font-bold leading-[0.8];
+    color: var(--dropcap);
+  }
+
+  .prose-site blockquote {
+    @apply relative my-10 px-8 py-2 text-center font-serif text-2xl italic leading-relaxed text-brand-800 dark:text-gold-200;
+  }
+
+  .prose-site blockquote::before,
+  .prose-site blockquote::after {
+    content: "";
+    @apply absolute inset-x-8 h-px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-gold-500),
+      transparent
+    );
+  }
+
+  .prose-site blockquote::before {
+    @apply top-[-1rem];
+  }
+
+  .prose-site blockquote::after {
+    @apply bottom-[-1rem];
+  }
+
+  /* --- Гүйдэг мөр ----------------------------------------------------- */
+
+  .ticker-track {
+    animation: ticker 56s linear infinite;
+  }
+
+  .ticker-track:hover,
+  .ticker-viewport:focus-within .ticker-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
